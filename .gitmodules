@@ -1,0 +1,3 @@
+[submodule "lib/hdr_histogram"]
+	path = lib/hdr_histogram
+	url = https://github.com/HdrHistogram/HdrHistogram_c.git
