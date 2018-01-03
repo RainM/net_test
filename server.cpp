@@ -17,8 +17,8 @@ mirror_server::mirror_server(int port) {
 
     struct sockaddr_in server_addr = {};
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = ::htons(port);
-    server_addr.sin_addr.s_addr = ::htonl(INADDR_ANY);
+    server_addr.sin_port = htons(port);
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if ( ::bind(listen_socket_, (sockaddr*)&server_addr, sizeof(server_addr)) < 0 ) {
 	__THROW_EXCEPTION_WITH_LOCATION("Can't bind socket to port " << port);
