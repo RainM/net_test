@@ -9,7 +9,7 @@ private:
     int socket_;
     
 public:
-    client(const std::string& host, int port);
+    client(const std::string& host, const std::string& port);
     ~client();
 
     std::pair<int64_t, int64_t> ping_pong();

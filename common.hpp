@@ -3,6 +3,9 @@
 #define BILLION  1000000000L
 #define BILLION_F 1000000000.
 
+#include <sstream>
+#include <stdexcept>
+
 #define __THROW_EXCEPTION_WITH_LOCATION(x)				\
   {									\
     std::stringstream stm;						\

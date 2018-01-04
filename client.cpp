@@ -7,23 +7,30 @@
 #include <unistd.h>
 #include <time.h>
 
+#include <netdb.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-client::client(const std::string& host, int port) {
-    socket_ = ::socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_ < 0) {
-	__THROW_EXCEPTION_WITH_LOCATION("Can't create socket")
+client::client(const std::string& host, const std::string& port) {
+
+    struct addrinfo hints = {}, *servinfo = nullptr;
+
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if ( ::getaddrinfo(host.c_str(), port.c_str(), &hints, &servinfo) != 0) {
+	__THROW_EXCEPTION_WITH_LOCATION("Can't get addrinfo for host: " << host << ":" << port);
     }
 
-    struct sockaddr_in server_addr = {};
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port);
-    server_addr.sin_addr.s_addr = ::inet_addr(host.c_str());
-
-    if ( ::connect(socket_, (sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-	__THROW_EXCEPTION_WITH_LOCATION("Can't connect to host: " << host << ":" << port);
+    for ( addrinfo* ai = servinfo; ai ; ai = ai->ai_next ) {
+	socket_ = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+	if (socket >= 0) {
+	    if ( ::connect(socket_, ai->ai_addr, ai->ai_addrlen) >= 0) {
+		return;
+	    }
+	}
     }
+    __THROW_EXCEPTION_WITH_LOCATION("Can't connect to " << host << ":" << port);
 }
 
 std::pair<int64_t, int64_t> client::ping_pong() {
@@ -73,7 +80,7 @@ std::pair<int64_t, int64_t> client::ping_pong() {
 
     result.second = read_done.tv_nsec - write_done.tv_nsec;
     result.second += BILLION * (read_done.tv_sec - write_done.tv_sec);
-    
+
     return result;
 }
 

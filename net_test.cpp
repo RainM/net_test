@@ -3,6 +3,7 @@
 
 #include <hdr_histogram.h>
 
+#include <iomanip>
 #include <iostream>
 #include <chrono>
 #include <vector>
@@ -12,9 +13,7 @@
 
 #define ITERATIONS_IN_TEST 10
 
-int main(int argc, char** argv) {    
-    std::cout << "Hello, world!" << std::endl;
-				    
+int main(int argc, char** argv) {
     struct hdr_histogram* histogram_write;
     struct hdr_histogram* histogram_wait;
 
@@ -28,22 +27,25 @@ int main(int argc, char** argv) {
 	INT64_C(3600000000),  // Maximum value
 	3,  // Number of significant figures
 	&histogram_wait);  // Pointer to initialise
-    
+
     if (argc < 3) {
 	std::cerr << "No enough parameters\n";
-	std::cerr << argv[0] << " host port" << std::endl;
+	std::cerr << argv[0] << " host port [additional arguments]" << std::endl;
 	return -1;
     }
 
+    std::string host = argv[1];
+    std::string port = argv[2];
+
     int print_histograms_each_n_seconds = 1;
     int time_to_run = 10;
-    std::vector<double> percentiles_to_output;
-    
+    double percentile_to_output = -1;
+
     int c;
     while ( (c = ::getopt(argc, argv, "p:n:t:e")) != -1 ) {
 	switch (c) {
 	case 'p':
-	    percentiles_to_output.push_back(::atof(optarg));
+	    percentile_to_output = ::atof(optarg);
 	    break;
 	case 'n':
 	    print_histograms_each_n_seconds = ::atoi(optarg);
@@ -58,16 +60,13 @@ int main(int argc, char** argv) {
 	}
     }
 
-    if (percentiles_to_output.empty()) {
-	percentiles_to_output.push_back(0.50);
-	percentiles_to_output.push_back(0.99);
+    if (percentile_to_output < 0 || percentile_to_output >= 1) {
+	percentile_to_output = 0.50;
     }
-    
+
+    std::cout << "Percentile:\t" << percentile_to_output << std::endl;
+
     try {
-    
-	std::string host = argv[1];
-	int port = atoi(argv[2]);
-    
 	client clt(host, port);
 
 	double total_delay_ns = 0. ;
@@ -97,43 +96,30 @@ int main(int argc, char** argv) {
 
 	    if (std::chrono::system_clock::now() > next_wake_up) {
 		next_wake_up = std::chrono::system_clock::now() + std::chrono::seconds(print_histograms_each_n_seconds);
-		
-		std::for_each(
-		    std::begin(percentiles_to_output),
-		    std::end(percentiles_to_output),
-		    [histogram_write] ( const double& percentile) {
-			int64_t write = ::hdr_value_at_percentile(histogram_write, percentile);
-			std::cout << "Write " << percentile << ": " << write << std::endl;
-		    }
-		    );
-		std::for_each(
-		    std::begin(percentiles_to_output),
-		    std::end(percentiles_to_output),
-		    [histogram_wait] ( const double& percentile) {
-			int64_t wait = ::hdr_value_at_percentile(histogram_wait, percentile);
-			std::cout << "Wait " << percentile << ": " << wait << std::endl;
-		    }
-		    );
+
+		std::cout <<  "* Write:\t" << ::hdr_value_at_percentile(histogram_write, percentile_to_output) << "\t";
+		std::cout << "\t* Wait:\t" << ::hdr_value_at_percentile(histogram_wait, percentile_to_output) << "\t(" << percentile_to_output << ")" << std::endl;
 	    }
 	}
 
-
-	std::cout << "Write:" << std::endl;
+	std::cout << "----------------------------------------" << std::endl;
+	std::cout << "--------------------Write----------------" << std::endl;
 	hdr_percentiles_print(
 	    histogram_write,
 	    stdout,
 	    1,
 	    1.0,
 	    CLASSIC);
-	
-	std::cout << "Wait:" << std::endl;
+
+	std::cout << "--------------------Wait----------------" << std::endl;
 	hdr_percentiles_print(
 	    histogram_wait,
 	    stdout,
 	    1,
 	    1.0,
 	    CLASSIC);
-	
+	std::cout << "----------------------------------------" << std::endl;
+
     } catch (std::exception& e) {
 	std::cerr << "Fatal error" << std::endl;
 	std::cerr << e.what() << std::endl;
