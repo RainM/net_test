@@ -8,8 +8,8 @@ As a result, application outputs HDR histograms of either write latency and netw
 2. Sends 16-byte message
 3. Counterparty reads it and sends back
 4. We receives data and measure two timings:
-4.1. How much time did we write to socket on our side (time for 'write' syscall)
-4.2. How much time did we wait before data returned (time from 'write' syscall to end of 'read' syscall)
+* How much time did we write to socket on our side (time for 'write' syscall)
+* How much time did we wait before data returned (time from 'write' syscall to end of 'read' syscall)
 
 Therefore, we get two numbers. The first one is how much time did we send data to TCP stack. The second number is true TCP connection latency.
 
